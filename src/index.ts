@@ -7,7 +7,7 @@ app.get("/", async (_req, res) => {
 	try {
 		const video = await lottie2mp4();
 		res.setHeader("Content-Type", "video/mp4");
-		res.setHeader("Content-Disposition", 'inline; filename="lottie.mp4"');
+		res.setHeader("Content-Disposition", 'attachment; filename="lottie.mp4"');
 		res.send(video);
 	} catch (error) {
 		console.error(error);

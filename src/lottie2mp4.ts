@@ -15,16 +15,22 @@ declare global {
 }
 
 export async function lottie2mp4(): Promise<Buffer> {
+	const startedAt = Date.now();
 	const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "lottie-frames-"));
 	const framesDir = path.join(tmpDir, "frames");
 	await fs.mkdir(framesDir);
 
 	try {
+		const browserLaunchStart = Date.now();
 		const browser = await puppeteer.launch({
 			args: ["--no-sandbox", "--disable-setuid-sandbox"],
 		});
+		console.log(
+			`[lottie2mp4] browser launch: ${Date.now() - browserLaunchStart}ms`,
+		);
 
 		try {
+			const setupStart = Date.now();
 			const page = await browser.newPage();
 			await page.setViewport({ width: 1080, height: 1920 });
 
@@ -39,7 +45,11 @@ export async function lottie2mp4(): Promise<Buffer> {
 			);
 
 			const totalFrames = await page.evaluate(() => window.getTotalFrames());
+			console.log(
+				`[lottie2mp4] renderer setup + lottie load: ${Date.now() - setupStart}ms (frames=${totalFrames})`,
+			);
 
+			const renderStart = Date.now();
 			for (let i = 0; i < totalFrames; i++) {
 				await page.evaluate((frame) => {
 					window.goToFrame(frame);
@@ -52,6 +62,9 @@ export async function lottie2mp4(): Promise<Buffer> {
 
 				await page.screenshot({ path: framePath as `${string}.png` });
 			}
+			console.log(
+				`[lottie2mp4] frame capture: ${Date.now() - renderStart}ms (frames=${totalFrames})`,
+			);
 
 			const outputPath = path.join(tmpDir, "output.mp4");
 			const args = [
@@ -67,6 +80,7 @@ export async function lottie2mp4(): Promise<Buffer> {
 				outputPath,
 			];
 
+			const ffmpegStart = Date.now();
 			await new Promise<void>((resolve, reject) => {
 				const proc = spawn(ffmpegPath as unknown as string, args);
 				proc.on("error", reject);
@@ -75,6 +89,7 @@ export async function lottie2mp4(): Promise<Buffer> {
 					else reject(new Error(`FFmpeg exited with code ${code}`));
 				});
 			});
+			console.log(`[lottie2mp4] ffmpeg encode: ${Date.now() - ffmpegStart}ms`);
 
 			return await fs.readFile(outputPath);
 		} finally {
@@ -82,5 +97,8 @@ export async function lottie2mp4(): Promise<Buffer> {
 		}
 	} finally {
 		await fs.rm(tmpDir, { recursive: true, force: true });
+		console.log(
+			`[lottie2mp4] total: ${Date.now() - startedAt}ms (temp cleaned)`,
+		);
 	}
 }
