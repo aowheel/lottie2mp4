@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Renderer</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      #container {
+        width: 1080px;
+        height: 1920px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.13.0/lottie.min.js"></script>
+    <script>
+      let animation;
+
+      window.loadLottie = (animationData) => {
+        animation = lottie.loadAnimation({
+          container: document.getElementById("container"),
+          renderer: "svg",
+          loop: false,
+          autoplay: false,
+          animationData,
+        });
+
+        return new Promise((resolve) => {
+          animation.addEventListener("DOMLoaded", () => resolve());
+        });
+      };
+
+      window.getTotalFrames = () => animation.totalFrames;
+
+      window.goToFrame = (frame) => {
+        animation.goToAndStop(frame, true);
+      }
+    </script>
+  </body>
+</html>
